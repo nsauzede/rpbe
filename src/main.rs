@@ -1,3 +1,5 @@
+use std::ops::{Add, Mul};
+
 fn max(a: i32, b: i32) -> i32 {
     if a > b {
         a
@@ -23,6 +25,23 @@ impl Point {
     fn translate(&mut self, dx: i32, dy: i32) {
         self.x += dx;
         self.y += dy;
+    }
+}
+
+impl Add<Point> for Point {
+    type Output = Point;
+    fn add(self, p: Point) -> Point {
+        Point {
+            x: self.x + p.x,
+            y: self.y + p.y,
+        }
+    }
+}
+
+impl Mul<Point> for Point {
+    type Output = i32;
+    fn mul(self, p: Point) -> i32 {
+        self.x * p.y - self.y * p.x
     }
 }
 
@@ -103,7 +122,7 @@ impl BitSet for u64 {
 }
 
 struct Type {
-	v: u64,
+    v: u64,
 }
 
 impl BitSet for Type {
@@ -189,7 +208,7 @@ fn main() {
     let n2 = !n;
     println!("!n={}", n2);
 
-    let mut n = Type {v: 42};
+    let mut n = Type { v: 42 };
     println!("n={:?}", n);
     n.clear(3);
     println!("n={:?}", n);
@@ -197,4 +216,13 @@ fn main() {
     println!("n={:?}", n);
     n.toggle(3);
     println!("n={:?}", n);
+
+    let p1 = Point { x: 1, y: 2 };
+    let p2 = Point { x: 3, y: 4 };
+    let p3 = p1 + p2;
+    let dot = p1 * p2;
+    println!("p3={:?}", p3);
+    println!("p1={:?}", p1);
+    println!("p2={:?}", p2);
+    println!("dot={}", dot);
 }
