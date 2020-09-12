@@ -281,40 +281,37 @@ fn main() {
     for (i, v) in vec![1, 2, 3].iter().enumerate() {
         println!("answer{}={}", i, v);
     }
+    macro_rules! print_val_index {
+        ($val:expr,$index:expr) => {
+            println!(
+                "index of {} is {}",
+                $val,
+                match $index {
+                    Some(i) => i.to_string(),
+                    _ => "not found".to_string(),
+                }
+            )
+        };
+    }
     {
         let val = 2.2;
         let index = index(&v2, &val);
-        println!(
-            "index of {} is {}",
-            val,
-            match index {
-                Some(i) => i.to_string(),
-                _ => "not found".to_string(),
-            }
-        );
+        print_val_index!(val, index);
     }
     let val = 3.1415;
     let index = index(&v2, &val);
-    println!(
-        "index of {} is {}",
-        val,
-        match index {
-            Some(i) => i.to_string(),
-            _ => "not found".to_string(),
-        }
-    );
-    println!(
-        "minmax={}",
-        match min_max(&v[..]) {
-            Some((min, max)) => format!("({};{})", min, max),
-            _ => "N/A".to_string(),
-        }
-    );
-    println!(
-        "minmax={}",
-        match min_max(&[0; 0]) {
-            Some((min, max)) => "found",
-            _ => "N/A",
-        }
-    );
+    print_val_index!(val, index);
+    macro_rules! print_minmax {
+        ($v:expr) => {
+            println!(
+                "minmax={}",
+                match min_max(&$v[..]) {
+                    Some((min, max)) => format!("({};{})", min, max),
+                    _ => "N/A".to_string(),
+                }
+            );
+        };
+    }
+    print_minmax!(v);
+    print_minmax!([0; 0]);
 }
