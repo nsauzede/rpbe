@@ -76,11 +76,29 @@ fn print_expr(expr: &Expr) {
 
 trait BitSet {
     fn clear(&mut self, index: usize);
+    fn is_set(&self, index: usize) -> bool;
+    fn set(&mut self, index: usize);
+    fn toggle(&mut self, index: usize) {
+        if self.is_set(index) {
+            self.clear(index);
+        } else {
+            self.set(index);
+        }
+    }
 }
 
 impl BitSet for u64 {
     fn clear(&mut self, index: usize) {
         *self &= !(1 << index);
+    }
+    fn is_set(&self, index: usize) -> bool {
+        (*self >> index) & 1 == 1
+    }
+    fn set(&mut self, index: usize) {
+        *self |= 1 << index;
+    }
+    fn toggle(&mut self, index: usize) {
+        *self ^= 1 << index;
     }
 }
 
@@ -91,6 +109,12 @@ struct Type {
 impl BitSet for Type {
     fn clear(&mut self, index: usize) {
         (*self).v &= !(1 << index);
+    }
+    fn is_set(&self, index: usize) -> bool {
+        ((*self).v >> index) & 1 == 1
+    }
+    fn set(&mut self, index: usize) {
+        (*self).v |= 1 << index;
     }
 }
 
@@ -168,5 +192,9 @@ fn main() {
     let mut n = Type {v: 42};
     println!("n={:?}", n);
     n.clear(3);
+    println!("n={:?}", n);
+    n.toggle(3);
+    println!("n={:?}", n);
+    n.toggle(3);
     println!("n={:?}", n);
 }
