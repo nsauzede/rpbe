@@ -120,26 +120,37 @@ trait BitSet {
     }
 }
 
-impl BitSet for u64 {
-    fn clear(&mut self, index: usize) {
-        *self &= !(1 << index);
-    }
-    fn is_set(&self, index: usize) -> bool {
-        (*self >> index) & 1 == 1
-    }
-    fn set(&mut self, index: usize) {
-        *self |= 1 << index;
-    }
-    fn toggle(&mut self, index: usize) {
-        *self ^= 1 << index;
-    }
+macro_rules! int_bitset {
+    ($ty:ty) => {
+        impl BitSet for $ty {
+            fn clear(&mut self, index: usize) {
+                *self &= !(1 << index);
+            }
+            fn is_set(&self, index: usize) -> bool {
+                (*self >> index) & 1 == 1
+            }
+            fn set(&mut self, index: usize) {
+                *self |= 1 << index;
+            }
+            fn toggle(&mut self, index: usize) {
+                *self ^= 1 << index;
+            }
+        }
+    };
 }
 
-struct Type {
+int_bitset!(u32);
+int_bitset!(i32);
+
+struct MType {
     v: u64,
 }
-
-impl BitSet for Type {
+macro_rules! mtype {
+    ($v:expr) => {
+        MType { v: $v }
+    };
+}
+impl BitSet for MType {
     fn clear(&mut self, index: usize) {
         (*self).v &= !(1 << index);
     }
@@ -153,7 +164,7 @@ impl BitSet for Type {
 
 use std::fmt::Debug;
 
-impl Debug for Type {
+impl Debug for MType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         f.write_fmt(format_args!("->{}<-", self.v))
     }
@@ -250,7 +261,16 @@ fn main() {
     let n2 = !n;
     println!("!n={}", n2);
 
-    let mut n = Type { v: 42 };
+    let mut n = mtype!(42);
+    println!("n={:?}", n);
+    n.clear(3);
+    println!("n={:?}", n);
+    n.toggle(3);
+    println!("n={:?}", n);
+    n.toggle(3);
+    println!("n={:?}", n);
+
+    let mut n = 42 as u32;
     println!("n={:?}", n);
     n.clear(3);
     println!("n={:?}", n);
@@ -268,7 +288,7 @@ fn main() {
     println!("p2={:?}", p2);
     println!("dot={}", dot);
 
-    let v: V3 = v3!(1.1, 2.2, 3.3);
+    let v: V3 = v3!(1. + 0.1, 2.2, 3.3);
     println!("v3={:?}", v);
     println!("first={}", first(&v[1..]));
     let v2 = vec![1.1, 2.2, 3.3];
