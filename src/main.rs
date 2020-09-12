@@ -1,6 +1,6 @@
 use std::ops::{Add, Mul};
 
-fn max(a: i32, b: i32) -> i32 {
+fn max<T: PartialOrd>(a: T, b: T) -> T {
     if a > b {
         a
     } else {
@@ -162,6 +162,7 @@ fn main() {
     }
     println!("Greatest common divisor of 15 and 40 is: {}", a);
     println!("max is {}", max(40, 15));
+    println!("max is {}", max(40.001, 40.0015));
 
     //    let point = Point { x: 24, y: 42 };
     //    println!("{:?}", point);
