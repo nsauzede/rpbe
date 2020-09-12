@@ -10,6 +10,10 @@ macro_rules! v3 {
     };
 }
 
+fn first<T>(slice: &[T]) -> &T {
+    &slice[0]
+}
+
 fn max<T: PartialOrd>(a: T, b: T) -> T {
     if a > b {
         a
@@ -238,6 +242,9 @@ fn main() {
     println!("p2={:?}", p2);
     println!("dot={}", dot);
 
-    let v3: V3 = v3!(1, 2, 3);
-    println!("v3={:?}", v3);
+    let v: V3 = v3!(1.1, 2.2, 3.3);
+    println!("v3={:?}", v);
+    println!("first={}", first(&v[1..]));
+    let v2 = vec![1.1, 2.2, 3.3];
+    println!("first={}", first(&v2));
 }
