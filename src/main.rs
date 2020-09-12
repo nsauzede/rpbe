@@ -74,6 +74,34 @@ fn print_expr(expr: &Expr) {
     }
 }
 
+trait BitSet {
+    fn clear(&mut self, index: usize);
+}
+
+impl BitSet for u64 {
+    fn clear(&mut self, index: usize) {
+        *self &= !(1 << index);
+    }
+}
+
+struct Type {
+	v: u64,
+}
+
+impl BitSet for Type {
+    fn clear(&mut self, index: usize) {
+        (*self).v &= !(1 << index);
+    }
+}
+
+use std::fmt::Debug;
+
+impl Debug for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        f.write_fmt(format_args!("->{}<-", self.v))
+    }
+}
+
 fn main() {
     let a = [1, 2, 3, 4];
     for e in &a {
@@ -136,6 +164,9 @@ fn main() {
     println!("n={}", n);
     let n2 = !n;
     println!("!n={}", n2);
-    //    let n3 = ~n;
-    //    println!("~n={}", n3);
+
+    let mut n = Type {v: 42};
+    println!("n={:?}", n);
+    n.clear(3);
+    println!("n={:?}", n);
 }
