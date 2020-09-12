@@ -159,6 +159,32 @@ impl Debug for Type {
     }
 }
 
+fn index<T: PartialEq>(slice: &[T], target: &T) -> Option<usize> {
+    for (index, element) in slice.iter().enumerate() {
+        if element == target {
+            return Some(index);
+        }
+    }
+    None
+}
+
+fn min_max<T: PartialOrd + Copy>(slice: &[T]) -> Option<(T, T)> {
+    if slice.is_empty() {
+        return None;
+    }
+    let mut min = slice[0];
+    let mut max = slice[0];
+    for &element in slice {
+        if element > max {
+            max = element;
+        }
+        if element < min {
+            min = element;
+        }
+    }
+    Some((min, max))
+}
+
 fn main() {
     let a = [1, 2, 3, 4];
     for e in &a {
@@ -247,4 +273,48 @@ fn main() {
     println!("first={}", first(&v[1..]));
     let v2 = vec![1.1, 2.2, 3.3];
     println!("first={}", first(&v2));
+
+    for i in &[42; 4] {
+        println!("answer={}", i);
+    }
+
+    for (i, v) in vec![1, 2, 3].iter().enumerate() {
+        println!("answer{}={}", i, v);
+    }
+    {
+        let val = 2.2;
+        let index = index(&v2, &val);
+        println!(
+            "index of {} is {}",
+            val,
+            match index {
+                Some(i) => i.to_string(),
+                _ => "not found".to_string(),
+            }
+        );
+    }
+    let val = 3.1415;
+    let index = index(&v2, &val);
+    println!(
+        "index of {} is {}",
+        val,
+        match index {
+            Some(i) => i.to_string(),
+            _ => "not found".to_string(),
+        }
+    );
+    println!(
+        "minmax={}",
+        match min_max(&v[..]) {
+            Some((min, max)) => format!("({};{})", min, max),
+            _ => "N/A".to_string(),
+        }
+    );
+    println!(
+        "minmax={}",
+        match min_max(&[0; 0]) {
+            Some((min, max)) => "found",
+            _ => "N/A",
+        }
+    );
 }
