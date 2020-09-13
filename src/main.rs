@@ -90,6 +90,7 @@ enum Expr {
     Div { dividend: i32, divisor: i32 },
     Val(i32),
 }
+
 fn print_expr(expr: &Expr) {
     match expr {
         Expr::Null => println!("No value"),
@@ -300,11 +301,11 @@ fn main() {
     let v2 = vec![1.1, 2.2, 3.3];
     println!("first={}", first(&v2));
 
-    for i in &[42; 4] {
+    for i in &[42; 2] {
         println!("answer={}", i);
     }
 
-    for (i, v) in vec![1, 2, 3].iter().enumerate() {
+    for (i, v) in vec![1, 2].iter().enumerate() {
         println!("answer{}={}", i, v);
     }
     macro_rules! print_val_index {
@@ -340,4 +341,20 @@ fn main() {
     }
     print_minmax!(v);
     print_minmax!([0; 0]);
+
+    macro_rules! hash {
+        ($($key:expr => $value:expr),*) => {
+    {
+        let mut h = ::std::collections::HashMap::new();
+        $(h.insert($key, $value);)*
+        h
+    }
+        };
+    }
+
+    let mut h = ::std::collections::HashMap::new();
+    h.insert("hello", "world");
+    println!("hashmap={:?}", h);
+    let h = hash!("bonjour" => "monde", "bye" => "world");
+    println!("hashmap={:?}", h);
 }
