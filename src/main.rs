@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Sub};
 
 type Scalar = f32;
 //type Scalar = f64;
@@ -42,22 +42,15 @@ impl Point {
     }
 }
 
-impl Add<Point> for Point {
-    type Output = Point;
-    fn add(self, p: Point) -> Point {
-        Point {
-            x: self.x + p.x,
-            y: self.y + p.y,
-        }
-    }
+macro_rules! impl_op {
+    ($uo:ident, $lo:ident, $s:ident : $l:ty, $o:ident : $r:ty, $ot:ty $b:block) => {
+        impl $uo for $l { type Output = $ot; fn $lo($s, $o: $r) -> $ot {$b} }
+    };
 }
 
-impl Mul<Point> for Point {
-    type Output = i32;
-    fn mul(self, p: Point) -> i32 {
-        self.x * p.y - self.y * p.x
-    }
-}
+impl_op!(Add, add, self: Point, o: Point, Point { Point { x: self.x + o.x, y: self.y + o.y }});
+impl_op!(Sub, sub, self: Point, o: Point, Point { Point { x: self.x + o.x, y: self.y + o.y }});
+impl_op!(Mul, mul, self: Point, o: Point, i32 { self.x * o.y - self.y * o.x });
 
 #[derive(Debug, Clone, Copy)]
 struct Line {
@@ -95,10 +88,7 @@ fn print_expr(expr: &Expr) {
         Expr::Div {
             dividend: x,
             divisor: 0,
-        } => println!(
-            "Divisor 
-         is zero"
-        ),
+        } => println!("Divisor is zero"),
         Expr::Div {
             dividend: x,
             divisor: y,
@@ -256,7 +246,7 @@ fn main() {
     let up = if let b'a'..=b'z' = c { c - 32 } else { c };
     println!("c={} up={}", c, up);
 
-    let mut n = 42;
+    let n = 42;
     println!("n={}", n);
     let n2 = !n;
     println!("!n={}", n2);
@@ -287,6 +277,7 @@ fn main() {
     println!("p1={:?}", p1);
     println!("p2={:?}", p2);
     println!("dot={}", dot);
+    println!("sub={:?}", p1 - p2);
 
     let v: V3 = v3!(1. + 0.1, 2.2, 3.3);
     println!("v3={:?}", v);
