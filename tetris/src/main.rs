@@ -7,6 +7,8 @@ use sdl2::rect::Rect;
 use sdl2::render::{Canvas, Texture, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 
+use sdl2::image::{InitFlag, LoadTexture};
+
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 
@@ -48,6 +50,12 @@ fn create_texture_rect<'a>(
 
 pub fn main() {
     let sdl_context = sdl2::init().expect("SDL initialization failed");
+
+    sdl2::image::init(InitFlag::PNG | InitFlag::JPG).expect(
+        "Couldn't initialize
+         image context",
+    );
+
     let video_subsystem = sdl_context
         .video()
         .expect("Couldn't get SDL video subsystem");
@@ -67,6 +75,11 @@ pub fn main() {
         .expect("Failed to convert window into canvas");
 
     let texture_creator: TextureCreator<_> = canvas.texture_creator();
+
+    let image_texture = texture_creator
+        .load_texture("assets/my_image.png")
+        .expect("Couldn't load image");
+
     let mut event_pump = sdl_context
         .event_pump()
         .expect("Failed to get SDL event pump");
@@ -108,6 +121,9 @@ pub fn main() {
 
         canvas.set_draw_color(Color::RGB(255, 0, 0));
         canvas.clear();
+        canvas
+            .copy(&image_texture, None, None)
+            .expect("Render failed");
 
         let square_texture = if let Ok(elapsed) = now.elapsed() {
             //println!("elapsed={}", elapsed.as_secs());
