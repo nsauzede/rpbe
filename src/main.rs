@@ -44,12 +44,15 @@ impl Point {
 
 macro_rules! impl_op {
     ($uo:ident, $lo:ident, $s:ident : $l:ty, $o:ident : $r:ty, $ot:ty $b:block) => {
-        impl $uo for $l { type Output = $ot; fn $lo($s, $o: $r) -> $ot {$b} }
+        impl $uo<$r> for $l { type Output = $ot; fn $lo($s, $o: $r) -> $ot {$b} }
     };
 }
 
 impl_op!(Add, add, self: Point, o: Point, Point { Point { x: self.x + o.x, y: self.y + o.y }});
+impl_op!(Add, add, self: Point, o: i32, Point { Point { x: self.x + o, y: self.y + o }});
+impl_op!(Add, add, self: i32, o: Point, Point { Point { x: self + o.x, y: self + o.y }});
 impl_op!(Sub, sub, self: Point, o: Point, Point { Point { x: self.x + o.x, y: self.y + o.y }});
+impl_op!(Mul, mul, self: Point, o: i32, Point { Point { x: self.x * o, y: self.y * o }});
 impl_op!(Mul, mul, self: Point, o: Point, i32 { self.x * o.y - self.y * o.x });
 
 #[derive(Debug, Clone, Copy)]
@@ -278,6 +281,9 @@ fn main() {
     println!("p2={:?}", p2);
     println!("dot={}", dot);
     println!("sub={:?}", p1 - p2);
+    println!("muls={:?}", p1 * 666);
+    println!("adds={:?}", p1 + 666);
+    println!("adds={:?}", 333 + p1);
 
     let v: V3 = v3!(1. + 0.1, 2.2, 3.3);
     println!("v3={:?}", v);
