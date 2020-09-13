@@ -15,8 +15,8 @@ const TEXTURE_SIZE: u32 = 32;
 #[derive(Clone, Copy)]
 enum TextureColor {
     Black,
-    White,
-    Red,
+    //White,
+    //Red,
     Green,
     Blue,
 }
@@ -32,8 +32,8 @@ fn create_texture_rect<'a>(
             .with_texture_canvas(&mut square_texture, |texture| {
                 match color {
                     TextureColor::Black => texture.set_draw_color(Color::RGB(0, 0, 0)),
-                    TextureColor::White => texture.set_draw_color(Color::RGB(255, 255, 255)),
-                    TextureColor::Red => texture.set_draw_color(Color::RGB(255, 0, 0)),
+                    //TextureColor::White => texture.set_draw_color(Color::RGB(255, 255, 255)),
+                    //TextureColor::Red => texture.set_draw_color(Color::RGB(255, 0, 0)),
                     TextureColor::Green => texture.set_draw_color(Color::RGB(0, 255, 0)),
                     TextureColor::Blue => texture.set_draw_color(Color::RGB(0, 0, 255)),
                 }
@@ -71,6 +71,28 @@ pub fn main() {
         .event_pump()
         .expect("Failed to get SDL event pump");
 
+    let green_texture = create_texture_rect(
+        &mut canvas,
+        &texture_creator,
+        TextureColor::Green,
+        TEXTURE_SIZE,
+    )
+    .expect("Failed to create a texture");
+    let blue_texture = create_texture_rect(
+        &mut canvas,
+        &texture_creator,
+        TextureColor::Blue,
+        TEXTURE_SIZE,
+    )
+    .expect("Failed to create a texture");
+    let black_texture = create_texture_rect(
+        &mut canvas,
+        &texture_creator,
+        TextureColor::Black,
+        TEXTURE_SIZE,
+    )
+    .expect("Failed to create a texture");
+
     let now = SystemTime::now();
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -87,22 +109,19 @@ pub fn main() {
         canvas.set_draw_color(Color::RGB(255, 0, 0));
         canvas.clear();
 
-        let col = if let Ok(elapsed) = now.elapsed() {
+        let square_texture = if let Ok(elapsed) = now.elapsed() {
             //println!("elapsed={}", elapsed.as_secs());
             if elapsed.as_secs() % 2 == 0 {
-                TextureColor::Green
+                &green_texture
             } else {
-                TextureColor::Blue
+                &blue_texture
             }
         } else {
-            TextureColor::Black
+            &black_texture
         };
-        let square_texture = create_texture_rect(&mut canvas, &texture_creator, col, TEXTURE_SIZE)
-            .expect("Failed to create a texture");
-
         canvas
             .copy(
-                &square_texture,
+                square_texture,
                 None,
                 Rect::new(0, 0, TEXTURE_SIZE, TEXTURE_SIZE),
             )
