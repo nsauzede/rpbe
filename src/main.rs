@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Div, Mul, Sub};
 
 type Scalar = f32;
 //type Scalar = f64;
@@ -28,6 +28,12 @@ struct Point {
     y: i32,
 }
 
+macro_rules! point {
+    ($x:expr, $y: expr) => {
+        Point { x: $x, y: $y }
+    };
+}
+
 impl Point {
     fn new(x: i32, y: i32) -> Point {
         Point { x, y }
@@ -53,7 +59,9 @@ impl_op!(Add, add, self: Point, o: i32, Point { Point { x: self.x + o, y: self.y
 impl_op!(Add, add, self: i32, o: Point, Point { Point { x: self + o.x, y: self + o.y }});
 impl_op!(Sub, sub, self: Point, o: Point, Point { Point { x: self.x + o.x, y: self.y + o.y }});
 impl_op!(Mul, mul, self: Point, o: i32, Point { Point { x: self.x * o, y: self.y * o }});
+impl_op!(Mul, mul, self: i32, o: Point, Point { Point { x: self * o.x, y: self * o.y }});
 impl_op!(Mul, mul, self: Point, o: Point, i32 { self.x * o.y - self.y * o.x });
+impl_op!(Div, div, self: Point, o: i32, Point { Point { x: self.x / o, y: self.y / o }});
 
 #[derive(Debug, Clone, Copy)]
 struct Line {
@@ -272,8 +280,8 @@ fn main() {
     n.toggle(3);
     println!("n={:?}", n);
 
-    let p1 = Point { x: 1, y: 2 };
-    let p2 = Point { x: 3, y: 4 };
+    let p1 = point!(1, 2);
+    let p2 = point!(3, 4);
     let p3 = p1 + p2;
     let dot = p1 * p2;
     println!("p3={:?}", p3);
@@ -284,6 +292,7 @@ fn main() {
     println!("muls={:?}", p1 * 666);
     println!("adds={:?}", p1 + 666);
     println!("adds={:?}", 333 + p1);
+    println!("divs={:?}", (666 * p1) / 42);
 
     let v: V3 = v3!(1. + 0.1, 2.2, 3.3);
     println!("v3={:?}", v);
