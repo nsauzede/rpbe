@@ -343,7 +343,7 @@ fn main() {
     print_minmax!([0; 0]);
 
     macro_rules! hash {
-        ($($key:expr => $value:expr),*) => {
+        ($($key:expr => $value:expr),* $(,)* ) => {
     {
         let mut h = ::std::collections::HashMap::new();
         $(h.insert($key, $value);)*
@@ -355,6 +355,9 @@ fn main() {
     let mut h = ::std::collections::HashMap::new();
     h.insert("hello", "world");
     println!("hashmap={:?}", h);
-    let h = hash!("bonjour" => "monde", "bye" => "world");
+    let h = hash!(
+    "bonjour" => "monde",
+    "bye" => "world",
+    );
     println!("hashmap={:?}", h);
 }
