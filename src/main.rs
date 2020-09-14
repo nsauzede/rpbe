@@ -360,4 +360,30 @@ fn main() {
     "bye" => "world",
     );
     println!("hashmap={:?}", h);
+
+    #[derive(Debug)]
+    struct Tetro {
+        n: String,
+    }
+    #[derive(Debug)]
+    struct A {
+        curr: Option<Tetro>,
+        next: Option<Tetro>,
+    }
+    let mut a = A {
+        curr: None,
+        next: None,
+    };
+    a.next = Some(Tetro {
+        n: "42".to_string(),
+    });
+    if a.curr.is_none() {
+        if let Some(tetro) = a.next.take() {
+            a.curr = Some(tetro);
+            a.next = Some(Tetro {
+                n: "43".to_string(),
+            });
+        }
+    }
+    println!("a={:?}", a);
 }

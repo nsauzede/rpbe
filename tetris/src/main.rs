@@ -297,6 +297,7 @@ struct Tetris {
     score: u32,
     nb_lines: u32,
     current_piece: Option<Tetrimino>,
+    next_piece: Option<Tetrimino>,
 }
 
 impl Tetris {
@@ -311,6 +312,7 @@ impl Tetris {
             score: 0,
             nb_lines: 0,
             current_piece: None,
+            next_piece: None,
         }
     }
 
@@ -635,9 +637,9 @@ fn display_game_information<'a>(
     font: &sdl2::ttf::Font,
     start_x_point: i32,
 ) {
-    let score_text = format!("Score: {}", tetris.score);
-    let lines_sent_text = format!("Lines sent: {}", tetris.nb_lines);
-    let level_text = format!("Level: {}", tetris.current_level);
+    let score_text = format!("Score:{}", tetris.score);
+    let lines_sent_text = format!("Lines sent:{}", tetris.nb_lines);
+    let level_text = format!("Level:{}", tetris.current_level);
 
     let score = create_texture_from_text(&texture_creator, &font, &score_text, 255, 255, 255)
         .expect("Cannot render text");
@@ -670,6 +672,56 @@ fn display_game_information<'a>(
         .expect("Couldn't copy text");
 }
 
+fn display_next_piece<'a>(
+    tetris: &Tetris,
+    width: u32,
+    textures: &[sdl2::render::Texture<'_>; 7],
+    canvas: &mut Canvas<Window>,
+    texture_creator: &'a TextureCreator<WindowContext>,
+    font: &sdl2::ttf::Font,
+    start_x_point: i32,
+) {
+    let next_text = format!("Next:");
+
+    let next = create_texture_from_text(&texture_creator, &font, &next_text, 255, 255, 255)
+        .expect("Cannot render text");
+
+    canvas
+        .copy(
+            &next,
+            None,
+            get_rect_from_text(&next_text, start_x_point, 195),
+        )
+        .expect("Couldn't copy text");
+
+    if let Some(ref piece) = tetris.next_piece {
+        for (line_nb, line) in piece.states[piece.current_state as usize]
+            .iter()
+            .enumerate()
+        {
+            for (case_nb, case) in line.iter().enumerate() {
+                if *case == 0 {
+                    continue;
+                }
+                canvas
+                    .copy(
+                        &textures[*case as usize - 1],
+                        None,
+                        Rect::new(
+                            width as i32 - 180
+                                + 10
+                                + (case_nb as isize) as i32 * TETRIS_HEIGHT as i32,
+                            240 + 10 + (line_nb) as i32 * TETRIS_HEIGHT as i32,
+                            TETRIS_HEIGHT as u32,
+                            TETRIS_HEIGHT as u32,
+                        ),
+                    )
+                    .expect("Couldn't copy texture into window");
+            }
+        }
+    }
+}
+
 fn is_time_over(tetris: &Tetris, timer: &SystemTime) -> bool {
     match timer.elapsed() {
         Ok(elapsed) => {
@@ -693,9 +745,11 @@ fn main() {
           SDL event pump",
     );
 
-    let grid_x = 20;
+    let grid_x = 10;
     let grid_y = (height - TETRIS_HEIGHT as u32 * 16) as i32 / 2;
+    //let grid_y = (height - TETRIS_HEIGHT as u32 * 16) as i32 - 20;
     let mut tetris = Tetris::new();
+    tetris.next_piece = Some(tetris.create_new_tetrimino());
 
     let window = video_subsystem
         .window("Tetris", width, height)
@@ -774,6 +828,10 @@ fn main() {
 
     loop {
         if is_time_over(&tetris, &timer) {
+            println!("score: {}", tetris.score);
+            println!("lines: {}", tetris.nb_lines);
+            println!("level: {}", tetris.current_level);
+
             let mut make_permanent = false;
             if let Some(ref mut piece) = tetris.current_piece {
                 let x = piece.x;
@@ -794,8 +852,8 @@ fn main() {
                 &border,
                 None,
                 Rect::new(
-                    10,
-                    (height - TETRIS_HEIGHT as u32 * 16) as i32 / 2 - 10,
+                    grid_x - 10,
+                    grid_y - 10,
                     TETRIS_HEIGHT as u32 * 10 + 20,
                     TETRIS_HEIGHT as u32 * 16 + 20,
                 ),
@@ -806,21 +864,49 @@ fn main() {
                 &grid,
                 None,
                 Rect::new(
-                    20,
-                    (height - TETRIS_HEIGHT as u32 * 16) as i32 / 2,
+                    grid_x,
+                    grid_y,
                     TETRIS_HEIGHT as u32 * 10,
                     TETRIS_HEIGHT as u32 * 16,
                 ),
             )
             .expect("Couldn't copy texture into window");
 
+        canvas
+            .copy(
+                &border,
+                None,
+                Rect::new(
+                    width as i32 - 180,
+                    240,
+                    TETRIS_HEIGHT as u32 * 4 + 20,
+                    TETRIS_HEIGHT as u32 * 4 + 20,
+                ),
+            )
+            .expect("Couldn't copy texture into window");
+        canvas
+            .copy(
+                &grid,
+                None,
+                Rect::new(
+                    width as i32 - 180 + 10,
+                    240 + 10,
+                    TETRIS_HEIGHT as u32 * 4,
+                    TETRIS_HEIGHT as u32 * 4,
+                ),
+            )
+            .expect("Couldn't copy texture into window");
+
         if tetris.current_piece.is_none() {
-            let current_piece = tetris.create_new_tetrimino();
-            if !current_piece.test_current_position(&tetris.game_map) {
-                print_game_information(&tetris);
-                break;
+            // we need to take ownership of the option value, to move it to tetris.current_piece
+            if let Some(current_piece) = tetris.next_piece.take() {
+                if !current_piece.test_current_position(&tetris.game_map) {
+                    print_game_information(&tetris);
+                    break;
+                }
+                tetris.current_piece = Some(current_piece);
+                tetris.next_piece = Some(tetris.create_new_tetrimino());
             }
-            tetris.current_piece = Some(current_piece);
         }
         let mut quit = false;
         if !handle_events(&mut tetris, &mut quit, &mut timer, &mut event_pump) {
@@ -881,7 +967,18 @@ fn main() {
             &mut canvas,
             &texture_creator,
             &font,
-            width as i32 - grid_x - 180,
+            //width as i32 - grid_x - 180 + 15,
+            TETRIS_HEIGHT as i32 * 10 + 20,
+        );
+
+        display_next_piece(
+            &tetris,
+            width,
+            &textures,
+            &mut canvas,
+            &texture_creator,
+            &font,
+            width as i32 - grid_x - 180 + 15,
         );
 
         canvas.present();
