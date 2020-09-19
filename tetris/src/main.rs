@@ -13,6 +13,8 @@ use std::io::{self, Read, Write};
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 
+const WIDTH: u32 = 660;
+const HEIGHT: u32 = 660;
 const TETRIS_HEIGHT: usize = 40;
 const HIGHSCORE_FILE: &'static str = "scores.txt";
 const LEVEL_TIMES: [u32; 10] = [1000, 850, 700, 600, 500, 400, 300, 250, 221, 190];
@@ -236,6 +238,7 @@ impl TetriminoGenerator for TetriminoT {
     }
 }
 
+#[derive(Debug)]
 struct Tetrimino {
     states: States,
     x: isize,
@@ -292,6 +295,7 @@ impl Tetrimino {
 }
 
 struct Tetris {
+    game_over: bool,
     game_map: Vec<Vec<u8>>,
     current_level: u32,
     score: u32,
@@ -307,6 +311,7 @@ impl Tetris {
             game_map.push(vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         }
         Tetris {
+            game_over: false,
             game_map: game_map,
             current_level: 1,
             score: 0,
@@ -520,6 +525,20 @@ fn handle_events(
                 make_permanent = true;
             }
         }
+    } else {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
+                    *quit = true;
+                    break;
+                }
+                _ => {}
+            }
+        }
     }
     if make_permanent {
         tetris.make_permanent();
@@ -638,7 +657,7 @@ fn display_game_information<'a>(
     start_x_point: i32,
 ) {
     let score_text = format!("Score:{}", tetris.score);
-    let lines_sent_text = format!("Lines sent:{}", tetris.nb_lines);
+    let lines_sent_text = format!("Lines:{}", tetris.nb_lines);
     let level_text = format!("Level:{}", tetris.current_level);
 
     let score = create_texture_from_text(&texture_creator, &font, &score_text, 255, 255, 255)
@@ -737,8 +756,8 @@ fn main() {
     let video_subsystem = sdl_context
         .video()
         .expect("Couldn't get SDL video subsystem");
-    let width = 600;
-    let height = 800;
+    let width = WIDTH;
+    let height = HEIGHT;
     let mut timer = SystemTime::now();
     let mut event_pump = sdl_context.event_pump().expect(
         "Failed to get
@@ -747,7 +766,6 @@ fn main() {
 
     let grid_x = 10;
     let grid_y = (height - TETRIS_HEIGHT as u32 * 16) as i32 / 2;
-    //let grid_y = (height - TETRIS_HEIGHT as u32 * 16) as i32 - 20;
     let mut tetris = Tetris::new();
     tetris.next_piece = Some(tetris.create_new_tetrimino());
 
@@ -767,11 +785,11 @@ fn main() {
     let texture_creator: TextureCreator<_> = canvas.texture_creator();
 
     let ttf_context = sdl2::ttf::init().expect("SDL TTF initialization failed");
-    let font = ttf_context
+    let mut font = ttf_context
         .load_font("assets/lucon.ttf", 128)
         .expect("Couldn't load the font");
 
-    //font.set_style(sdl2::ttf::STYLE_BOLD);
+    font.set_style(sdl2::ttf::FontStyle::BOLD);
 
     let grid = create_texture_rect(
         &mut canvas,
@@ -828,10 +846,6 @@ fn main() {
 
     loop {
         if is_time_over(&tetris, &timer) {
-            println!("score: {}", tetris.score);
-            println!("lines: {}", tetris.nb_lines);
-            println!("level: {}", tetris.current_level);
-
             let mut make_permanent = false;
             if let Some(ref mut piece) = tetris.current_piece {
                 let x = piece.x;
@@ -897,15 +911,21 @@ fn main() {
             )
             .expect("Couldn't copy texture into window");
 
-        if tetris.current_piece.is_none() {
+        if !tetris.game_over && tetris.current_piece.is_none() {
             // we need to take ownership of the option value, to move it to tetris.current_piece
             if let Some(current_piece) = tetris.next_piece.take() {
                 if !current_piece.test_current_position(&tetris.game_map) {
                     print_game_information(&tetris);
-                    break;
+                    tetris.game_over = true;
                 }
-                tetris.current_piece = Some(current_piece);
-                tetris.next_piece = Some(tetris.create_new_tetrimino());
+                if !tetris.game_over {
+                    // consume next piece
+                    tetris.current_piece = Some(current_piece);
+                    tetris.next_piece = Some(tetris.create_new_tetrimino());
+                } else {
+                    // restore next piece
+                    tetris.next_piece = Some(current_piece);
+                }
             }
         }
         let mut quit = false;
@@ -938,7 +958,6 @@ fn main() {
             }
         }
         if quit {
-            print_game_information(&tetris);
             break;
         }
 
@@ -967,7 +986,6 @@ fn main() {
             &mut canvas,
             &texture_creator,
             &font,
-            //width as i32 - grid_x - 180 + 15,
             TETRIS_HEIGHT as i32 * 10 + 20,
         );
 
