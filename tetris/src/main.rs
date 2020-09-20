@@ -19,7 +19,7 @@ const WIDTH: u32 = 660;
 const HEIGHT: u32 = 660;
 const NUM_TEXTURES: usize = 7;
 const TETRIS_HEIGHT: usize = 40;
-const HIGHSCORE_FILE: &'static str = "scores.txt";
+const HIGHSCORE_FILE: &str = "scores.txt";
 const LEVEL_TIMES: [u32; 10] = [1000, 850, 700, 600, 500, 400, 300, 250, 221, 190];
 const LEVEL_LINES: [u32; 10] = [20, 40, 60, 80, 100, 120, 140, 160, 180, 200];
 const NB_HIGHSCORES: usize = 5;
@@ -42,7 +42,7 @@ impl Tetris {
         }
         Tetris {
             game_over: false,
-            game_map: game_map,
+            game_map,
             current_level: 1,
             score: 0,
             nb_lines: 0,
@@ -79,14 +79,14 @@ impl Tetris {
                     break;
                 }
             }
-            if complete == true {
+            if complete {
                 score_add += self.current_level;
                 self.game_map.remove(y);
                 y -= 1;
             }
             y += 1;
         }
-        if self.game_map.len() == 0 {
+        if self.game_map.is_empty() {
             // A "tetris"!
             score_add += 1000;
         }
@@ -230,7 +230,7 @@ fn handle_events(
                 } => {
                     let x = piece.x;
                     let mut y = piece.y;
-                    while piece.change_position(&tetris.game_map, x, y + 1) == true {
+                    while piece.change_position(&tetris.game_map, x, y + 1) {
                         y += 1;
                     }
                     make_permanent = true;
@@ -238,10 +238,11 @@ fn handle_events(
                 _ => {}
             }
         }
-        if !make_permanent {
-            if piece.change_position(&tetris.game_map, tmp_x, tmp_y) == false && tmp_y != piece.y {
-                make_permanent = true;
-            }
+        if !make_permanent
+            && !piece.change_position(&tetris.game_map, tmp_x, tmp_y)
+            && tmp_y != piece.y
+        {
+            make_permanent = true;
         }
     } else {
         for event in event_pump.poll_iter() {
@@ -303,7 +304,7 @@ fn save_highscores_and_lines(highscores: &[u32], number_of_lines: &[u32]) -> boo
 }
 
 fn line_to_slice(line: &str) -> Vec<u32> {
-    line.split(" ")
+    line.split(' ')
         .filter_map(|nb| nb.parse::<u32>().ok())
         .collect()
 }
@@ -311,7 +312,7 @@ fn line_to_slice(line: &str) -> Vec<u32> {
 fn load_highscores_and_lines() -> Option<(Vec<u32>, Vec<u32>)> {
     if let Ok(content) = read_from_file(HIGHSCORE_FILE) {
         let mut lines = content
-            .splitn(3, "\n")
+            .splitn(3, '\n')
             .map(|line| line_to_slice(line))
             .collect::<Vec<_>>();
         if lines.len() == 3 {
@@ -395,8 +396,8 @@ fn display_game_information<'a>(
         .expect("Cannot render text");
 
     if tetris.game_over {
-        let game_over_text = format!("Game Over");
-        let restart_text = format!("F1 to restart");
+        let game_over_text = "Game Over".to_string();
+        let restart_text = "F1 to restart".to_string();
         let game_over =
             create_texture_from_text(&texture_creator, &font, &game_over_text, 255, 255, 255)
                 .expect("Cannot render text");
@@ -418,7 +419,7 @@ fn display_game_information<'a>(
             )
             .expect("Couldn't copy text");
     } else {
-        let keyhint_text = format!("Esc to end");
+        let keyhint_text = "Esc to end".to_string();
         let keyhint =
             create_texture_from_text(&texture_creator, &font, &keyhint_text, 255, 255, 255)
                 .expect("Cannot render text");
@@ -501,7 +502,7 @@ fn display_next_piece<'a>(
     font: &sdl2::ttf::Font,
     start_x_point: i32,
 ) {
-    let next_text = format!("Next:");
+    let next_text = "Next:".to_string();
 
     let next = create_texture_from_text(&texture_creator, &font, &next_text, 255, 255, 255)
         .expect("Cannot render text");
@@ -530,7 +531,7 @@ fn display_next_piece<'a>(
 fn is_time_over(tetris: &Tetris, timer: &SystemTime) -> bool {
     match timer.elapsed() {
         Ok(elapsed) => {
-            let millis = elapsed.as_secs() as u32 * 1000 + elapsed.subsec_nanos() / 1_000_000;
+            let millis = elapsed.as_secs() as u32 * 1000 + elapsed.subsec_millis();
             millis > LEVEL_TIMES[tetris.current_level as usize - 1]
         }
         Err(_) => false,
@@ -731,16 +732,7 @@ fn main() {
         let mut cmd = None;
         if !handle_events(&mut tetris, &mut cmd, &mut timer, &mut event_pump) {
             if let Some(ref mut tetrimino) = tetris.current_piece {
-                display_tetrimino(
-                    tetrimino,
-                    grid_x,
-                    tetrimino.x,
-                    grid_y,
-                    tetrimino.y,
-                    &textures,
-                    None,
-                    &mut canvas,
-                );
+                // draw ghost
                 let x = tetrimino.x;
                 let mut y = tetrimino.y;
                 while tetrimino.test_position(
@@ -748,8 +740,7 @@ fn main() {
                     tetrimino.current_state as usize,
                     x,
                     y + 1,
-                ) == true
-                {
+                ) {
                     y += 1;
                 }
                 if y > tetrimino.y {
@@ -764,6 +755,17 @@ fn main() {
                         &mut canvas,
                     );
                 }
+                // draw current
+                display_tetrimino(
+                    tetrimino,
+                    grid_x,
+                    tetrimino.x,
+                    grid_y,
+                    tetrimino.y,
+                    &textures,
+                    None,
+                    &mut canvas,
+                );
             }
         }
         if let Some(cmd) = cmd {
