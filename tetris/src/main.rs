@@ -168,9 +168,14 @@ fn get_rect_from_text(text: &str, x: i32, y: i32) -> Option<Rect> {
     Some(Rect::new(x, y, text.len() as u32 * 20, 30))
 }
 
+enum Cmd {
+    Quit,
+    Restart,
+}
+
 fn handle_events(
     tetris: &mut Tetris,
-    quit: &mut bool,
+    cmd: &mut Option<Cmd>,
     timer: &mut SystemTime,
     event_pump: &mut sdl2::EventPump,
 ) -> bool {
@@ -186,7 +191,7 @@ fn handle_events(
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
-                    *quit = true;
+                    *cmd = Some(Cmd::Quit);
                     break;
                 }
                 Event::KeyDown {
@@ -241,7 +246,14 @@ fn handle_events(
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
-                    *quit = true;
+                    *cmd = Some(Cmd::Quit);
+                    break;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::F1),
+                    ..
+                } => {
+                    *cmd = Some(Cmd::Restart);
                     break;
                 }
                 _ => {}
@@ -379,14 +391,25 @@ fn display_game_information<'a>(
 
     if tetris.game_over {
         let game_over_text = format!("Game Over");
+        let restart_text = format!("F1 to restart");
         let game_over =
             create_texture_from_text(&texture_creator, &font, &game_over_text, 255, 255, 255)
+                .expect("Cannot render text");
+        let restart =
+            create_texture_from_text(&texture_creator, &font, &restart_text, 255, 255, 255)
                 .expect("Cannot render text");
         canvas
             .copy(
                 &game_over,
                 None,
                 get_rect_from_text(&game_over_text, start_x_point, 20),
+            )
+            .expect("Couldn't copy text");
+        canvas
+            .copy(
+                &restart,
+                None,
+                get_rect_from_text(&game_over_text, start_x_point, 55),
             )
             .expect("Couldn't copy text");
     }
@@ -650,8 +673,8 @@ fn main() {
                 }
             }
         }
-        let mut quit = false;
-        if !handle_events(&mut tetris, &mut quit, &mut timer, &mut event_pump) {
+        let mut cmd = None;
+        if !handle_events(&mut tetris, &mut cmd, &mut timer, &mut event_pump) {
             if let Some(ref mut piece) = tetris.current_piece {
                 for (line_nb, line) in piece.states[piece.current_state as usize]
                     .iter()
@@ -679,13 +702,23 @@ fn main() {
                 }
             }
         }
-        if quit {
-            if tetris.game_over {
-                break;
-            } else {
-                print_game_information(&tetris);
-                tetris.current_piece = None;
-                tetris.game_over = true;
+        if let Some(cmd) = cmd {
+            match cmd {
+                Cmd::Quit => {
+                    if tetris.game_over {
+                        break;
+                    } else {
+                        print_game_information(&tetris);
+                        tetris.current_piece = None;
+                        tetris.game_over = true;
+                    }
+                }
+                Cmd::Restart => {
+                    if tetris.game_over {
+                        tetris = Tetris::new();
+                        tetris.next_piece = Some(Tetrimino::create_new_tetrimino());
+                    }
+                }
             }
         }
 
