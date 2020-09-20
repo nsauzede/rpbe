@@ -1,6 +1,6 @@
 extern crate rand;
 
-type Piece = Vec<Vec<u8>>;
+pub type Piece = Vec<Vec<u8>>;
 type States = Vec<Piece>;
 
 #[derive(Debug)]

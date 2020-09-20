@@ -17,6 +17,7 @@ use std::time::{Duration, SystemTime};
 
 const WIDTH: u32 = 660;
 const HEIGHT: u32 = 660;
+const NUM_TEXTURES: usize = 7;
 const TETRIS_HEIGHT: usize = 40;
 const HIGHSCORE_FILE: &'static str = "scores.txt";
 const LEVEL_TIMES: [u32; 10] = [1000, 850, 700, 600, 500, 400, 300, 250, 221, 190];
@@ -169,6 +170,7 @@ fn get_rect_from_text(text: &str, x: i32, y: i32) -> Option<Rect> {
 }
 
 enum Cmd {
+    Escape,
     Quit,
     Restart,
 }
@@ -186,12 +188,15 @@ fn handle_events(
 
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
+                Event::Quit { .. } => {
+                    *cmd = Some(Cmd::Quit);
+                    break;
+                }
+                Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
-                    *cmd = Some(Cmd::Quit);
+                    *cmd = Some(Cmd::Escape);
                     break;
                 }
                 Event::KeyDown {
@@ -412,6 +417,18 @@ fn display_game_information<'a>(
                 get_rect_from_text(&game_over_text, start_x_point, 55),
             )
             .expect("Couldn't copy text");
+    } else {
+        let keyhint_text = format!("Esc to end");
+        let keyhint =
+            create_texture_from_text(&texture_creator, &font, &keyhint_text, 255, 255, 255)
+                .expect("Cannot render text");
+        canvas
+            .copy(
+                &keyhint,
+                None,
+                get_rect_from_text(&keyhint_text, start_x_point, 20),
+            )
+            .expect("Couldn't copy text");
     }
     canvas
         .copy(
@@ -436,10 +453,49 @@ fn display_game_information<'a>(
         .expect("Couldn't copy text");
 }
 
+/// if texture is Some, it overrides tetrimino's texture
+fn display_tetrimino(
+    tetrimino: &tetrimino::Tetrimino,
+    offs_x: i32,
+    piece_x: isize,
+    offs_y: i32,
+    piece_y: usize,
+    textures: &[sdl2::render::Texture<'_>; NUM_TEXTURES],
+    texture: Option<&sdl2::render::Texture<'_>>,
+    canvas: &mut Canvas<Window>,
+) {
+    for (line_nb, line) in tetrimino.states[tetrimino.current_state as usize]
+        .iter()
+        .enumerate()
+    {
+        for (case_nb, case) in line.iter().enumerate() {
+            if *case == 0 {
+                continue;
+            }
+            canvas
+                .copy(
+                    if let Some(texture) = texture {
+                        texture
+                    } else {
+                        &textures[*case as usize - 1]
+                    },
+                    None,
+                    Rect::new(
+                        offs_x + (piece_x + case_nb as isize) as i32 * TETRIS_HEIGHT as i32,
+                        offs_y + (piece_y + line_nb) as i32 * TETRIS_HEIGHT as i32,
+                        TETRIS_HEIGHT as u32,
+                        TETRIS_HEIGHT as u32,
+                    ),
+                )
+                .expect("Couldn't copy texture into window");
+        }
+    }
+}
+
 fn display_next_piece<'a>(
     tetris: &Tetris,
     width: u32,
-    textures: &[sdl2::render::Texture<'_>; 7],
+    textures: &[sdl2::render::Texture<'_>; NUM_TEXTURES],
     canvas: &mut Canvas<Window>,
     texture_creator: &'a TextureCreator<WindowContext>,
     font: &sdl2::ttf::Font,
@@ -457,32 +513,17 @@ fn display_next_piece<'a>(
             get_rect_from_text(&next_text, start_x_point, 195),
         )
         .expect("Couldn't copy text");
-
-    if let Some(ref piece) = tetris.next_piece {
-        for (line_nb, line) in piece.states[piece.current_state as usize]
-            .iter()
-            .enumerate()
-        {
-            for (case_nb, case) in line.iter().enumerate() {
-                if *case == 0 {
-                    continue;
-                }
-                canvas
-                    .copy(
-                        &textures[*case as usize - 1],
-                        None,
-                        Rect::new(
-                            width as i32 - 180
-                                + 10
-                                + (case_nb as isize) as i32 * TETRIS_HEIGHT as i32,
-                            240 + 10 + (line_nb) as i32 * TETRIS_HEIGHT as i32,
-                            TETRIS_HEIGHT as u32,
-                            TETRIS_HEIGHT as u32,
-                        ),
-                    )
-                    .expect("Couldn't copy texture into window");
-            }
-        }
+    if let Some(ref tetrimino) = tetris.next_piece {
+        display_tetrimino(
+            tetrimino,
+            width as i32 - 180 + 10,
+            0,
+            240 + 10,
+            0,
+            textures,
+            None,
+            canvas,
+        );
     }
 }
 
@@ -535,6 +576,20 @@ fn main() {
         .expect("Couldn't load the font");
 
     font.set_style(sdl2::ttf::FontStyle::BOLD);
+
+    let grey = create_texture_rect(
+        &mut canvas,
+        &texture_creator,
+        128,
+        128,
+        128,
+        TETRIS_HEIGHT as u32 * 10,
+        TETRIS_HEIGHT as u32 * 16,
+    )
+    .expect(
+        "Failed to create
+                 a texture",
+    );
 
     let grid = create_texture_rect(
         &mut canvas,
@@ -675,36 +730,48 @@ fn main() {
         }
         let mut cmd = None;
         if !handle_events(&mut tetris, &mut cmd, &mut timer, &mut event_pump) {
-            if let Some(ref mut piece) = tetris.current_piece {
-                for (line_nb, line) in piece.states[piece.current_state as usize]
-                    .iter()
-                    .enumerate()
+            if let Some(ref mut tetrimino) = tetris.current_piece {
+                display_tetrimino(
+                    tetrimino,
+                    grid_x,
+                    tetrimino.x,
+                    grid_y,
+                    tetrimino.y,
+                    &textures,
+                    None,
+                    &mut canvas,
+                );
+                let x = tetrimino.x;
+                let mut y = tetrimino.y;
+                while tetrimino.test_position(
+                    &tetris.game_map,
+                    tetrimino.current_state as usize,
+                    x,
+                    y + 1,
+                ) == true
                 {
-                    for (case_nb, case) in line.iter().enumerate() {
-                        if *case == 0 {
-                            continue;
-                        }
-                        canvas
-                            .copy(
-                                &textures[*case as usize - 1],
-                                None,
-                                Rect::new(
-                                    grid_x
-                                        + (piece.x + case_nb as isize) as i32
-                                            * TETRIS_HEIGHT as i32,
-                                    grid_y + (piece.y + line_nb) as i32 * TETRIS_HEIGHT as i32,
-                                    TETRIS_HEIGHT as u32,
-                                    TETRIS_HEIGHT as u32,
-                                ),
-                            )
-                            .expect("Couldn't copy texture into window");
-                    }
+                    y += 1;
+                }
+                if y > tetrimino.y {
+                    display_tetrimino(
+                        tetrimino,
+                        grid_x,
+                        x,
+                        grid_y,
+                        y,
+                        &textures,
+                        Some(&grey),
+                        &mut canvas,
+                    );
                 }
             }
         }
         if let Some(cmd) = cmd {
             match cmd {
                 Cmd::Quit => {
+                    break;
+                }
+                Cmd::Escape => {
                     if tetris.game_over {
                         break;
                     } else {
