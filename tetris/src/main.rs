@@ -298,7 +298,7 @@ fn load_highscores_and_lines() -> Option<(Vec<u32>, Vec<u32>)> {
             .map(|line| line_to_slice(line))
             .collect::<Vec<_>>();
         if lines.len() == 3 {
-        lines.pop();
+            lines.pop();
             let (lines_sent, highscores) = (lines.pop().unwrap(), lines.pop().unwrap());
             Some((highscores, lines_sent))
         } else {
@@ -377,6 +377,19 @@ fn display_game_information<'a>(
     let level = create_texture_from_text(&texture_creator, &font, &level_text, 255, 255, 255)
         .expect("Cannot render text");
 
+    if tetris.game_over {
+        let game_over_text = format!("Game Over");
+        let game_over =
+            create_texture_from_text(&texture_creator, &font, &game_over_text, 255, 255, 255)
+                .expect("Cannot render text");
+        canvas
+            .copy(
+                &game_over,
+                None,
+                get_rect_from_text(&game_over_text, start_x_point, 20),
+            )
+            .expect("Couldn't copy text");
+    }
     canvas
         .copy(
             &score,
@@ -667,7 +680,13 @@ fn main() {
             }
         }
         if quit {
-            break;
+            if tetris.game_over {
+                break;
+            } else {
+                print_game_information(&tetris);
+                tetris.current_piece = None;
+                tetris.game_over = true;
+            }
         }
 
         for (line_nb, line) in tetris.game_map.iter().enumerate() {
