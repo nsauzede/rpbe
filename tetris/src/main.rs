@@ -24,8 +24,13 @@ const LEVEL_TIMES: [u32; 10] = [1000, 850, 700, 600, 500, 400, 300, 250, 221, 19
 const LEVEL_LINES: [u32; 10] = [20, 40, 60, 80, 100, 120, 140, 160, 180, 200];
 const NB_HIGHSCORES: usize = 5;
 
+enum State {
+    Running,
+    Pause,
+    GameOver,
+}
 struct Tetris {
-    game_over: bool,
+    state: State,
     game_map: Vec<Vec<u8>>,
     current_level: u32,
     score: u32,
@@ -41,13 +46,27 @@ impl Tetris {
             game_map.push(vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         }
         Tetris {
-            game_over: false,
+            state: State::Running,
             game_map,
             current_level: 1,
             score: 0,
             nb_lines: 0,
             current_piece: None,
             next_piece: None,
+        }
+    }
+
+    fn is_pause(&self) -> bool {
+        match self.state {
+            State::Pause => true,
+            _ => false,
+        }
+    }
+
+    fn is_game_over(&self) -> bool {
+        match self.state {
+            State::GameOver => true,
+            _ => false,
         }
     }
 
@@ -170,9 +189,10 @@ fn get_rect_from_text(text: &str, x: i32, y: i32) -> Option<Rect> {
 }
 
 enum Cmd {
-    Escape,
     Quit,
+    Escape,
     Restart,
+    Pause,
 }
 
 fn handle_events(
@@ -182,6 +202,7 @@ fn handle_events(
     event_pump: &mut sdl2::EventPump,
 ) -> bool {
     let mut make_permanent = false;
+    let is_pause = tetris.is_pause();
     if let Some(ref mut piece) = tetris.current_piece {
         let mut tmp_x = piece.x;
         let mut tmp_y = piece.y;
@@ -197,6 +218,13 @@ fn handle_events(
                     ..
                 } => {
                     *cmd = Some(Cmd::Escape);
+                    break;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => {
+                    *cmd = Some(Cmd::Pause);
                     break;
                 }
                 Event::KeyDown {
@@ -225,20 +253,23 @@ fn handle_events(
                     piece.rotate(&tetris.game_map);
                 }
                 Event::KeyDown {
-                    keycode: Some(Keycode::Space),
+                    keycode: Some(Keycode::PageDown),
                     ..
                 } => {
-                    let x = piece.x;
-                    let mut y = piece.y;
-                    while piece.change_position(&tetris.game_map, x, y + 1) {
-                        y += 1;
+                    if !is_pause {
+                        let x = piece.x;
+                        let mut y = piece.y;
+                        while piece.change_position(&tetris.game_map, x, y + 1) {
+                            y += 1;
+                        }
+                        make_permanent = true;
                     }
-                    make_permanent = true;
                 }
                 _ => {}
             }
         }
-        if !make_permanent
+        if !is_pause
+            && !make_permanent
             && !piece.change_position(&tetris.game_map, tmp_x, tmp_y)
             && tmp_y != piece.y
         {
@@ -395,7 +426,7 @@ fn display_game_information<'a>(
     let level = create_texture_from_text(&texture_creator, &font, &level_text, 255, 255, 255)
         .expect("Cannot render text");
 
-    if tetris.game_over {
+    if tetris.is_game_over() {
         let game_over_text = "Game Over".to_string();
         let restart_text = "F1 to restart".to_string();
         let game_over =
@@ -418,17 +449,25 @@ fn display_game_information<'a>(
                 get_rect_from_text(&game_over_text, start_x_point, 55),
             )
             .expect("Couldn't copy text");
-    } else {
-        let keyhint_text = "Esc to end".to_string();
-        let keyhint =
-            create_texture_from_text(&texture_creator, &font, &keyhint_text, 255, 255, 255)
-                .expect("Cannot render text");
+    } else if tetris.is_pause() {
+        let t1_text = "Paused".to_string();
+        let t2_text = "Press Space..".to_string();
+        let t1 = create_texture_from_text(&texture_creator, &font, &t1_text, 255, 255, 255)
+            .expect("Cannot render text");
+        let t2 = create_texture_from_text(&texture_creator, &font, &t2_text, 255, 255, 255)
+            .expect("Cannot render text");
         canvas
-            .copy(
-                &keyhint,
-                None,
-                get_rect_from_text(&keyhint_text, start_x_point, 20),
-            )
+            .copy(&t1, None, get_rect_from_text(&t1_text, start_x_point, 20))
+            .expect("Couldn't copy text");
+        canvas
+            .copy(&t2, None, get_rect_from_text(&t2_text, start_x_point, 55))
+            .expect("Couldn't copy text");
+    } else {
+        let t2_text = "Esc to end".to_string();
+        let t2 = create_texture_from_text(&texture_creator, &font, &t2_text, 255, 255, 255)
+            .expect("Cannot render text");
+        canvas
+            .copy(&t2, None, get_rect_from_text(&t2_text, start_x_point, 55))
             .expect("Couldn't copy text");
     }
     canvas
@@ -578,12 +617,13 @@ fn main() {
 
     font.set_style(sdl2::ttf::FontStyle::BOLD);
 
+    const GREY: u8 = 16;
     let grey = create_texture_rect(
         &mut canvas,
         &texture_creator,
-        128,
-        128,
-        128,
+        GREY,
+        GREY,
+        GREY,
         TETRIS_HEIGHT as u32 * 10,
         TETRIS_HEIGHT as u32 * 16,
     )
@@ -646,7 +686,7 @@ fn main() {
     ];
 
     loop {
-        if is_time_over(&tetris, &timer) {
+        if !tetris.is_pause() && is_time_over(&tetris, &timer) {
             let mut make_permanent = false;
             if let Some(ref mut piece) = tetris.current_piece {
                 let x = piece.x;
@@ -712,14 +752,14 @@ fn main() {
             )
             .expect("Couldn't copy texture into window");
 
-        if !tetris.game_over && tetris.current_piece.is_none() {
+        if !tetris.is_pause() && !tetris.is_game_over() && tetris.current_piece.is_none() {
             // we need to take ownership of the option value, to move it to tetris.current_piece
             if let Some(current_piece) = tetris.next_piece.take() {
                 if !current_piece.test_current_position(&tetris.game_map) {
                     print_game_information(&tetris);
-                    tetris.game_over = true;
+                    tetris.state = State::GameOver;
                 }
-                if !tetris.game_over {
+                if !tetris.is_game_over() {
                     // consume next piece
                     tetris.current_piece = Some(current_piece);
                     tetris.next_piece = Some(Tetrimino::create_new_tetrimino());
@@ -774,18 +814,26 @@ fn main() {
                     break;
                 }
                 Cmd::Escape => {
-                    if tetris.game_over {
+                    if tetris.is_game_over() {
                         break;
                     } else {
                         print_game_information(&tetris);
                         tetris.current_piece = None;
-                        tetris.game_over = true;
+                        tetris.state = State::GameOver;
                     }
                 }
                 Cmd::Restart => {
-                    if tetris.game_over {
+                    if tetris.is_game_over() {
                         tetris = Tetris::new();
                         tetris.next_piece = Some(Tetrimino::create_new_tetrimino());
+                    }
+                }
+                Cmd::Pause => {
+                    if tetris.is_pause() {
+                        timer = SystemTime::now();
+                        tetris.state = State::Running;
+                    } else {
+                        tetris.state = State::Pause;
                     }
                 }
             }
