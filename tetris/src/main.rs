@@ -1,5 +1,7 @@
-extern crate rand;
 extern crate sdl2;
+
+mod tetrimino;
+use crate::tetrimino::Tetrimino;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -20,279 +22,6 @@ const HIGHSCORE_FILE: &'static str = "scores.txt";
 const LEVEL_TIMES: [u32; 10] = [1000, 850, 700, 600, 500, 400, 300, 250, 221, 190];
 const LEVEL_LINES: [u32; 10] = [20, 40, 60, 80, 100, 120, 140, 160, 180, 200];
 const NB_HIGHSCORES: usize = 5;
-
-type Piece = Vec<Vec<u8>>;
-type States = Vec<Piece>;
-
-trait TetriminoGenerator {
-    fn new() -> Tetrimino;
-}
-
-struct TetriminoI;
-
-impl TetriminoGenerator for TetriminoI {
-    fn new() -> Tetrimino {
-        Tetrimino {
-            states: vec![
-                vec![
-                    vec![1, 1, 1, 1],
-                    vec![0, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![0, 1, 0, 0],
-                    vec![0, 1, 0, 0],
-                    vec![0, 1, 0, 0],
-                    vec![0, 1, 0, 0],
-                ],
-            ],
-            x: 4,
-            y: 0,
-            current_state: 0,
-        }
-    }
-}
-
-struct TetriminoJ;
-
-impl TetriminoGenerator for TetriminoJ {
-    fn new() -> Tetrimino {
-        Tetrimino {
-            states: vec![
-                vec![
-                    vec![2, 2, 2, 0],
-                    vec![2, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![2, 2, 0, 0],
-                    vec![0, 2, 0, 0],
-                    vec![0, 2, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![0, 0, 2, 0],
-                    vec![2, 2, 2, 0],
-                    vec![0, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![2, 0, 0, 0],
-                    vec![2, 0, 0, 0],
-                    vec![2, 2, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-            ],
-            x: 4,
-            y: 0,
-            current_state: 0,
-        }
-    }
-}
-
-struct TetriminoL;
-
-impl TetriminoGenerator for TetriminoL {
-    fn new() -> Tetrimino {
-        Tetrimino {
-            states: vec![
-                vec![
-                    vec![3, 3, 3, 0],
-                    vec![0, 0, 3, 0],
-                    vec![0, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![0, 3, 0, 0],
-                    vec![0, 3, 0, 0],
-                    vec![3, 3, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![3, 0, 0, 0],
-                    vec![3, 3, 3, 0],
-                    vec![0, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![3, 3, 0, 0],
-                    vec![3, 0, 0, 0],
-                    vec![3, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-            ],
-            x: 4,
-            y: 0,
-            current_state: 0,
-        }
-    }
-}
-
-struct TetriminoO;
-
-impl TetriminoGenerator for TetriminoO {
-    fn new() -> Tetrimino {
-        Tetrimino {
-            states: vec![vec![
-                vec![4, 4, 0, 0],
-                vec![4, 4, 0, 0],
-                vec![0, 0, 0, 0],
-                vec![0, 0, 0, 0],
-            ]],
-            x: 5,
-            y: 0,
-            current_state: 0,
-        }
-    }
-}
-
-struct TetriminoS;
-
-impl TetriminoGenerator for TetriminoS {
-    fn new() -> Tetrimino {
-        Tetrimino {
-            states: vec![
-                vec![
-                    vec![0, 5, 5, 0],
-                    vec![5, 5, 0, 0],
-                    vec![0, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![0, 5, 0, 0],
-                    vec![0, 5, 5, 0],
-                    vec![0, 0, 5, 0],
-                    vec![0, 0, 0, 0],
-                ],
-            ],
-            x: 4,
-            y: 0,
-            current_state: 0,
-        }
-    }
-}
-
-struct TetriminoZ;
-
-impl TetriminoGenerator for TetriminoZ {
-    fn new() -> Tetrimino {
-        Tetrimino {
-            states: vec![
-                vec![
-                    vec![6, 6, 0, 0],
-                    vec![0, 6, 6, 0],
-                    vec![0, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![0, 0, 6, 0],
-                    vec![0, 6, 6, 0],
-                    vec![0, 6, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-            ],
-            x: 4,
-            y: 0,
-            current_state: 0,
-        }
-    }
-}
-
-struct TetriminoT;
-
-impl TetriminoGenerator for TetriminoT {
-    fn new() -> Tetrimino {
-        Tetrimino {
-            states: vec![
-                vec![
-                    vec![7, 7, 7, 0],
-                    vec![0, 7, 0, 0],
-                    vec![0, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![0, 7, 0, 0],
-                    vec![7, 7, 0, 0],
-                    vec![0, 7, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![0, 7, 0, 0],
-                    vec![7, 7, 7, 0],
-                    vec![0, 0, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-                vec![
-                    vec![0, 7, 0, 0],
-                    vec![0, 7, 7, 0],
-                    vec![0, 7, 0, 0],
-                    vec![0, 0, 0, 0],
-                ],
-            ],
-            x: 4,
-            y: 0,
-            current_state: 0,
-        }
-    }
-}
-
-#[derive(Debug)]
-struct Tetrimino {
-    states: States,
-    x: isize,
-    y: usize,
-    current_state: u8,
-}
-
-impl Tetrimino {
-    fn rotate(&mut self, game_map: &[Vec<u8>]) {
-        let mut tmp_state = self.current_state + 1;
-        if tmp_state as usize >= self.states.len() {
-            tmp_state = 0;
-        }
-        let x_pos = [0, -1, 1, -2, 2, -3];
-        for x in x_pos.iter() {
-            if self.test_position(game_map, tmp_state as usize, self.x + x, self.y) == true {
-                self.current_state = tmp_state;
-                self.x += *x;
-                break;
-            }
-        }
-    }
-
-    fn test_position(&self, game_map: &[Vec<u8>], tmp_state: usize, x: isize, y: usize) -> bool {
-        for shift_y in 0..4 {
-            for shift_x in 0..4 {
-                let x = x + shift_x;
-                if self.states[tmp_state][shift_y][shift_x as usize] != 0
-                    && (y + shift_y >= game_map.len()
-                        || x < 0
-                        || x as usize >= game_map[y + shift_y].len()
-                        || game_map[y + shift_y][x as usize] != 0)
-                {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    fn test_current_position(&self, game_map: &[Vec<u8>]) -> bool {
-        self.test_position(game_map, self.current_state as usize, self.x, self.y)
-    }
-
-    fn change_position(&mut self, game_map: &[Vec<u8>], new_x: isize, new_y: usize) -> bool {
-        if self.test_position(game_map, self.current_state as usize, new_x, new_y) == true {
-            self.x = new_x as isize;
-            self.y = new_y;
-            true
-        } else {
-            false
-        }
-    }
-}
 
 struct Tetris {
     game_over: bool,
@@ -364,27 +93,6 @@ impl Tetris {
         while self.game_map.len() < 16 {
             self.increase_line();
             self.game_map.insert(0, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        }
-    }
-
-    fn create_new_tetrimino(&self) -> Tetrimino {
-        static mut PREV: u8 = 7;
-        let mut rand_nb = rand::random::<u8>() % 7;
-        if unsafe { PREV } == rand_nb {
-            rand_nb = rand::random::<u8>() % 7;
-        }
-        unsafe {
-            PREV = rand_nb;
-        }
-        match rand_nb {
-            0 => TetriminoI::new(),
-            1 => TetriminoJ::new(),
-            2 => TetriminoL::new(),
-            3 => TetriminoO::new(),
-            4 => TetriminoS::new(),
-            5 => TetriminoZ::new(),
-            6 => TetriminoT::new(),
-            _ => unreachable!(),
         }
     }
 
@@ -586,10 +294,11 @@ fn line_to_slice(line: &str) -> Vec<u32> {
 fn load_highscores_and_lines() -> Option<(Vec<u32>, Vec<u32>)> {
     if let Ok(content) = read_from_file(HIGHSCORE_FILE) {
         let mut lines = content
-            .splitn(2, "\n")
+            .splitn(3, "\n")
             .map(|line| line_to_slice(line))
             .collect::<Vec<_>>();
-        if lines.len() == 2 {
+        if lines.len() == 3 {
+        lines.pop();
             let (lines_sent, highscores) = (lines.pop().unwrap(), lines.pop().unwrap());
             Some((highscores, lines_sent))
         } else {
@@ -641,7 +350,7 @@ fn print_game_information(tetris: &Tetris) {
         "Number of lines: {}{}",
         tetris.nb_lines,
         if new_highest_lines_sent {
-            " [NEW HIGHSCORE]"
+            " [NEW LINES_SENT]"
         } else {
             ""
         }
@@ -767,7 +476,7 @@ fn main() {
     let grid_x = 10;
     let grid_y = (height - TETRIS_HEIGHT as u32 * 16) as i32 / 2;
     let mut tetris = Tetris::new();
-    tetris.next_piece = Some(tetris.create_new_tetrimino());
+    tetris.next_piece = Some(Tetrimino::create_new_tetrimino());
 
     let window = video_subsystem
         .window("Tetris", width, height)
@@ -921,7 +630,7 @@ fn main() {
                 if !tetris.game_over {
                     // consume next piece
                     tetris.current_piece = Some(current_piece);
-                    tetris.next_piece = Some(tetris.create_new_tetrimino());
+                    tetris.next_piece = Some(Tetrimino::create_new_tetrimino());
                 } else {
                     // restore next piece
                     tetris.next_piece = Some(current_piece);
