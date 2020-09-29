@@ -31,6 +31,7 @@ enum State {
     GameOver,
 }
 struct Tetris {
+    score_file: String,
     state: State,
     game_map: Vec<Vec<u8>>,
     current_level: u32,
@@ -41,12 +42,13 @@ struct Tetris {
 }
 
 impl Tetris {
-    fn new() -> Tetris {
+    fn new(score_file: &str) -> Tetris {
         let mut game_map = Vec::new();
         for _ in 0..16 {
             game_map.push(vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         }
         Tetris {
+            score_file: score_file.to_string(),
             state: State::Running,
             game_map,
             current_level: 1,
@@ -329,12 +331,16 @@ fn slice_to_string(slice: &[u32]) -> String {
         .join(" ")
 }
 
-fn save_highscores_and_lines(highscores: &[u32], number_of_lines: &[u32]) -> bool {
+fn save_highscores_and_lines(
+    score_file: &str,
+    highscores: &[u32],
+    number_of_lines: &[u32],
+) -> bool {
     let s_highscores = slice_to_string(highscores);
     let s_number_of_lines = slice_to_string(number_of_lines);
     write_into_file(
         &format!("{}\n{}\n", s_highscores, s_number_of_lines),
-        HIGHSCORE_FILE,
+        score_file,
     )
     .is_ok()
 }
@@ -345,8 +351,8 @@ fn line_to_slice(line: &str) -> Vec<u32> {
         .collect()
 }
 
-fn load_highscores_and_lines() -> Option<(Vec<u32>, Vec<u32>)> {
-    if let Ok(content) = read_from_file(HIGHSCORE_FILE) {
+fn load_highscores_and_lines(score_file: &str) -> Option<(Vec<u32>, Vec<u32>)> {
+    if let Ok(content) = read_from_file(score_file) {
         let mut lines = content
             .splitn(3, '\n')
             .map(|line| line_to_slice(line))
@@ -381,14 +387,14 @@ fn update_vec(v: &mut Vec<u32>, value: u32) -> bool {
 fn print_game_information(tetris: &Tetris) {
     let mut new_highest_highscore = true;
     let mut new_highest_lines_sent = true;
-    if let Some((mut highscores, mut lines_sent)) = load_highscores_and_lines() {
+    if let Some((mut highscores, mut lines_sent)) = load_highscores_and_lines(&tetris.score_file) {
         new_highest_highscore = update_vec(&mut highscores, tetris.score);
         new_highest_lines_sent = update_vec(&mut lines_sent, tetris.nb_lines);
         if new_highest_highscore || new_highest_lines_sent {
-            save_highscores_and_lines(&highscores, &lines_sent);
+            save_highscores_and_lines(&tetris.score_file, &highscores, &lines_sent);
         }
     } else {
-        save_highscores_and_lines(&[tetris.score], &[tetris.nb_lines]);
+        save_highscores_and_lines(&tetris.score_file, &[tetris.score], &[tetris.nb_lines]);
     }
     println!("Game over...");
     println!(
@@ -597,7 +603,17 @@ fn main() {
 
     let grid_x = 10;
     let grid_y = (height - TETRIS_HEIGHT as u32 * 16) as i32 / 2;
-    let mut tetris = Tetris::new();
+    let root_dir = current_exe().unwrap();
+    let root_dir = root_dir
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+    let score_file = root_dir.join(HIGHSCORE_FILE);
+    let score_file = score_file.to_str().unwrap();
+    let mut tetris = Tetris::new(score_file);
     tetris.next_piece = Some(Tetrimino::create_new_tetrimino());
 
     let window = video_subsystem
@@ -616,16 +632,7 @@ fn main() {
     let texture_creator: TextureCreator<_> = canvas.texture_creator();
 
     let ttf_context = sdl2::ttf::init().expect("SDL TTF initialization failed");
-    let ttf_file = current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("assets")
-        .join("lucon.ttf");
+    let ttf_file = root_dir.join("assets").join("lucon.ttf");
     let mut font = ttf_context
         .load_font(ttf_file, 128)
         .expect("Couldn't load the font");
@@ -839,7 +846,7 @@ fn main() {
                 }
                 Cmd::Restart => {
                     if tetris.is_game_over() {
-                        tetris = Tetris::new();
+                        tetris = Tetris::new(score_file);
                         tetris.next_piece = Some(Tetrimino::create_new_tetrimino());
                     }
                 }
