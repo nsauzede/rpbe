@@ -10,6 +10,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{Canvas, Texture, TextureCreator};
 use sdl2::video::{Window, WindowContext};
 
+use std::env::current_exe;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::thread::sleep;
@@ -221,7 +222,8 @@ fn handle_events(
                     break;
                 }
                 Event::KeyDown {
-                    keycode: Some(Keycode::Space),
+                    //keycode: Some(Keycode::Space),
+                    keycode: Some(Keycode::P),
                     ..
                 } => {
                     *cmd = Some(Cmd::Pause);
@@ -253,9 +255,12 @@ fn handle_events(
                     piece.rotate(&tetris.game_map);
                 }
                 Event::KeyDown {
-                    keycode: Some(Keycode::PageDown),
-                    ..
-                } => {
+                    keycode: Some(k), ..
+                } if (k == Keycode::RCtrl
+                    || k == Keycode::LCtrl
+                    || k == Keycode::PageDown
+                    || k == Keycode::Space) =>
+                {
                     if !is_pause {
                         let x = piece.x;
                         let mut y = piece.y;
@@ -611,13 +616,23 @@ fn main() {
     let texture_creator: TextureCreator<_> = canvas.texture_creator();
 
     let ttf_context = sdl2::ttf::init().expect("SDL TTF initialization failed");
+    let ttf_file = current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("assets")
+        .join("lucon.ttf");
     let mut font = ttf_context
-        .load_font("assets/lucon.ttf", 128)
+        .load_font(ttf_file, 128)
         .expect("Couldn't load the font");
 
     font.set_style(sdl2::ttf::FontStyle::BOLD);
 
-    const GREY: u8 = 16;
+    const GREY: u8 = 64;
     let grey = create_texture_rect(
         &mut canvas,
         &texture_creator,
